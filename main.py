@@ -1,16 +1,29 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 import sqlite3
-import database
 
 app = FastAPI()
 
 
+# =========================
+# DATABASE CONNECTION
+# =========================
+
+def get_connection():
+    return sqlite3.connect("database.db")
+
+
+# =========================
+# DATA MODELS
+# =========================
+
 class Product(BaseModel):
     farmer_id: int
     name: str
+    category: str
     quantity: float
     price: float
+
 
 class Farmer(BaseModel):
     name: str
@@ -18,92 +31,38 @@ class Farmer(BaseModel):
     location: str
 
 
+# =========================
+# HOME
+# =========================
+
 @app.get("/")
 def home():
-    return {"message": "SIH 26033 Backend is running!"}
-
-
-@app.post("/products")
-def add_product(product: Product):
-
-    connection = sqlite3.connect("database.db")
-    cursor = connection.cursor()
-
-    # Check if farmer exists
-    cursor.execute(
-        "SELECT id FROM farmers WHERE id = ?",
-        (product.farmer_id,)
-    )
-
-    farmer = cursor.fetchone()
-
-    if farmer is None:
-        connection.close()
-        return {
-            "error": "Farmer not found"
-        }
-
-    # Save product
-    cursor.execute(
-        "INSERT INTO products (farmer_id, name, quantity, price) VALUES (?, ?, ?, ?)",
-        (product.farmer_id, product.name, product.quantity, product.price)
-    )
-
-    connection.commit()
-    connection.close()
-
     return {
-        "message": "Product saved successfully",
-        "product": product
+        "message": "SIH 26033 Backend is running!"
     }
 
-@app.get("/products")
-def get_products():
 
-    connection = sqlite3.connect("database.db")
-    cursor = connection.cursor()
+# =========================
+# FARMER APIs
+# =========================
 
-    cursor.execute("""
-        SELECT
-            products.id,
-            products.farmer_id,
-            farmers.name,
-            farmers.location,
-            products.name,
-            products.quantity,
-            products.price
-        FROM products
-        JOIN farmers ON products.farmer_id = farmers.id
-    """)
-
-    rows = cursor.fetchall()
-
-    connection.close()
-
-    products = []
-
-    for row in rows:
-        products.append({
-            "id": row[0],
-            "farmer_id": row[1],
-            "farmer_name": row[2],
-            "location": row[3],
-            "name": row[4],
-            "quantity": row[5],
-            "price": row[6]
-        })
-
-    return {"products": products}
-
+# Add farmer
 @app.post("/farmers")
 def add_farmer(farmer: Farmer):
 
-    connection = sqlite3.connect("database.db")
+    connection = get_connection()
     cursor = connection.cursor()
 
     cursor.execute(
-        "INSERT INTO farmers (name, phone, location) VALUES (?, ?, ?)",
-        (farmer.name, farmer.phone, farmer.location)
+        """
+        INSERT INTO farmers (name, phone, location)
+        VALUES (?, ?, ?)
+        """,
+        (
+            farmer.name,
+            farmer.phone,
+            farmer.location
+        )
     )
 
     connection.commit()
@@ -114,14 +73,50 @@ def add_farmer(farmer: Farmer):
         "farmer": farmer
     }
 
-@app.get("/farmers/{farmer_id}")
-def get_farmer(farmer_id: int):
 
-    connection = sqlite3.connect("database.db")
+# Get all farmers
+@app.get("/farmers")
+def get_farmers():
+
+    connection = get_connection()
     cursor = connection.cursor()
 
     cursor.execute(
-        "SELECT id, name, phone, location FROM farmers WHERE id = ?",
+        "SELECT id, name, phone, location FROM farmers"
+    )
+
+    rows = cursor.fetchall()
+
+    connection.close()
+
+    farmers = []
+
+    for row in rows:
+        farmers.append({
+            "id": row[0],
+            "name": row[1],
+            "phone": row[2],
+            "location": row[3]
+        })
+
+    return {
+        "farmers": farmers
+    }
+
+
+# Get one farmer
+@app.get("/farmers/{farmer_id}")
+def get_farmer(farmer_id: int):
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT id, name, phone, location
+        FROM farmers
+        WHERE id = ?
+        """,
         (farmer_id,)
     )
 
@@ -141,15 +136,21 @@ def get_farmer(farmer_id: int):
         "location": farmer[3]
     }
 
+
+# Get products of one farmer
 @app.get("/farmers/{farmer_id}/products")
 def get_farmer_products(farmer_id: int):
 
-    connection = sqlite3.connect("database.db")
+    connection = get_connection()
     cursor = connection.cursor()
 
-    # Check if farmer exists
+    # Check farmer
     cursor.execute(
-        "SELECT id, name, location FROM farmers WHERE id = ?",
+        """
+        SELECT id, name, location
+        FROM farmers
+        WHERE id = ?
+        """,
         (farmer_id,)
     )
 
@@ -157,14 +158,15 @@ def get_farmer_products(farmer_id: int):
 
     if farmer is None:
         connection.close()
+
         return {
             "error": "Farmer not found"
         }
 
-    # Get farmer's products
+    # Get products
     cursor.execute(
         """
-        SELECT id, name, quantity, price
+        SELECT id, name, category, quantity, price
         FROM products
         WHERE farmer_id = ?
         """,
@@ -181,8 +183,9 @@ def get_farmer_products(farmer_id: int):
         products.append({
             "id": row[0],
             "name": row[1],
-            "quantity": row[2],
-            "price": row[3]
+            "category": row[2],
+            "quantity": row[3],
+            "price": row[4]
         })
 
     return {
@@ -194,10 +197,63 @@ def get_farmer_products(farmer_id: int):
         "products": products
     }
 
-@app.get("/search")
-def search_products(name: str):
 
-    connection = sqlite3.connect("database.db")
+# =========================
+# PRODUCT APIs
+# =========================
+
+# Add product
+@app.post("/products")
+def add_product(product: Product):
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    # Check if farmer exists
+    cursor.execute(
+        "SELECT id FROM farmers WHERE id = ?",
+        (product.farmer_id,)
+    )
+
+    farmer = cursor.fetchone()
+
+    if farmer is None:
+        connection.close()
+
+        return {
+            "error": "Farmer not found"
+        }
+
+    # Save product
+    cursor.execute(
+        """
+        INSERT INTO products
+        (farmer_id, name, category, quantity, price)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (
+            product.farmer_id,
+            product.name,
+            product.category,
+            product.quantity,
+            product.price
+        )
+    )
+
+    connection.commit()
+    connection.close()
+
+    return {
+        "message": "Product saved successfully",
+        "product": product
+    }
+
+
+# Get all products
+@app.get("/products")
+def get_products():
+
+    connection = get_connection()
     cursor = connection.cursor()
 
     cursor.execute(
@@ -208,10 +264,62 @@ def search_products(name: str):
             farmers.name,
             farmers.location,
             products.name,
+            products.category,
             products.quantity,
             products.price
         FROM products
-        JOIN farmers ON products.farmer_id = farmers.id
+        JOIN farmers
+        ON products.farmer_id = farmers.id
+        """
+    )
+
+    rows = cursor.fetchall()
+
+    connection.close()
+
+    products = []
+
+    for row in rows:
+        products.append({
+            "id": row[0],
+            "farmer_id": row[1],
+            "farmer_name": row[2],
+            "location": row[3],
+            "name": row[4],
+            "category": row[5],
+            "quantity": row[6],
+            "price": row[7]
+        })
+
+    return {
+        "products": products
+    }
+
+
+# =========================
+# SEARCH API
+# =========================
+
+@app.get("/search")
+def search_products(name: str):
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT
+            products.id,
+            products.farmer_id,
+            farmers.name,
+            farmers.location,
+            products.name,
+            products.category,
+            products.quantity,
+            products.price
+        FROM products
+        JOIN farmers
+        ON products.farmer_id = farmers.id
         WHERE products.name LIKE ?
         """,
         (f"%{name}%",)
@@ -230,8 +338,9 @@ def search_products(name: str):
             "farmer_name": row[2],
             "location": row[3],
             "product": row[4],
-            "quantity": row[5],
-            "price": row[6]
+            "category": row[5],
+            "quantity": row[6],
+            "price": row[7]
         })
 
     return {
