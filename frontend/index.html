@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>FarmConnect - SIH 26033</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- Navigation -->
+    <nav>
+        <div class="logo">🌾 FarmConnect</div>
+
+        <div class="nav-links">
+            <button onclick="showPage('home')">Home</button>
+            <button onclick="showPage('products')">Products</button>
+            <button onclick="showPage('add-product')">Add Products</button>
+            <button onclick="showPage('login')">Login</button>
+            <button onclick="showPage('register')">Register</button>
+        </div>
+    </nav>
+
+
+    <!-- HOME PAGE -->
+    <section id="home" class="page active">
+
+        <div class="hero">
+
+            <div class="hero-content">
+                <h1>Connecting Farmers & Buyers</h1>
+
+                <p>
+                    A digital marketplace where farmers can sell
+                    their products directly to buyers.
+                </p>
+
+                <button class="primary-btn"
+                        onclick="showPage('products')">
+                    Explore Products
+                </button>
+            </div>
+
+        </div>
+
+        <div class="features">
+
+            <div class="feature-card">
+                <h3>👨‍🌾 Farmers</h3>
+                <p>
+                    Manage your farm products and connect
+                    directly with buyers.
+                </p>
+            </div>
+
+            <div class="feature-card">
+                <h3>🛒 Buyers</h3>
+                <p>
+                    Discover fresh products directly from
+                    local farmers.
+                </p>
+            </div>
+
+            <div class="feature-card">
+                <h3>📦 Direct Orders</h3>
+                <p>
+                    Place and manage orders easily through
+                    the platform.
+                </p>
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- PRODUCTS PAGE -->
+    <section id="products" class="page">
+
+        <div class="container">
+
+            <h2>Available Products</h2>
+
+            <div id="product-list">
+                <p>Loading products...</p>
+            </div>
+
+        </div>
+
+    </section>
+        <!-- ADD PRODUCT PAGE -->
+    <section id="add-product" class="page">
+
+        <div class="form-container">
+
+            <h2>Add Product</h2>
+
+            <form onsubmit="addProduct(event)">
+
+                <input
+                    type="number"
+                    id="product-farmer-id"
+                    placeholder="Farmer ID"
+                    required
+                >
+
+                <input
+                    type="text"
+                    id="product-name"
+                    placeholder="Product Name"
+                    required
+                >
+
+                <input
+                    type="text"
+                    id="product-category"
+                    placeholder="Category"
+                >
+
+                <input
+                    type="number"
+                    id="product-quantity"
+                    placeholder="Quantity"
+                    step="0.01"
+                    required
+                >
+
+                <input
+                    type="number"
+                    id="product-price"
+                    placeholder="Price"
+                    step="0.01"
+                    required
+                >
+
+                <button type="submit" class="primary-btn">
+                    Add Product
+                </button>
+
+            </form>
+
+            <p id="product-message"></p>
+
+        </div>
+
+    </section>
+
+
+    <!-- LOGIN PAGE -->
+    <section id="login" class="page">
+
+        <div class="form-container">
+
+            <h2>Login</h2>
+
+            <form onsubmit="loginUser(event)">
+
+                <input
+                    type="text"
+                    id="login-phone"
+                    placeholder="Phone"
+                    required
+                >
+
+                <input
+                    type="password"
+                    id="login-password"
+                    placeholder="Password"
+                    required
+                >
+
+                <button type="submit" class="primary-btn">
+                    Login
+                </button>
+
+            </form>
+
+            <p id="login-message"></p>
+
+        </div>
+
+    </section>
+
+
+    <!-- REGISTER PAGE -->
+    <section id="register" class="page">
+
+        <div class="form-container">
+
+            <h2>Create Account</h2>
+
+            <form onsubmit="registerUser(event)">
+
+                <input
+                    type="text"
+                    id="register-name"
+                    placeholder="Full Name"
+                    required
+                >
+
+                <input
+                    type="text"
+                    id="register-phone"
+                    placeholder="Phone"
+                    required
+                >
+
+                <input
+                    type="text"
+                    id="register-location"
+                    placeholder="Location"
+                    required
+                >
+
+                <input
+                    type="password"
+                    id="register-password"
+                    placeholder="Password"
+                    required
+                >
+
+                <button type="submit" class="primary-btn">
+                    Register
+                </button>
+
+            </form>
+
+            <p id="register-message"></p>
+
+        </div>
+
+    </section>
+
+
+    <footer>
+        <p>SIH 26033 | FarmConnect</p>
+    </footer>
+
+
+    <script src="app.js"></script>
+
+</body>
+</html>

@@ -1,9 +1,16 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import sqlite3
 
 app = FastAPI()
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # =========================
 # DATABASE CONNECTION
@@ -64,6 +71,7 @@ class UserRegister(BaseModel):
     phone: str
     password: str
     role: str
+    location: str = ""
 
 class UserLogin(BaseModel):
     phone: str
@@ -105,6 +113,17 @@ def register_user(user: UserRegister):
     ))
 
     user_id = cursor.lastrowid
+
+    # If the user is a farmer, also create a farmer record
+    if user.role == "farmer":
+        cursor.execute("""
+            INSERT INTO farmers (name, phone, location)
+            VALUES (?, ?, ?)
+        """, (
+            user.name,
+            user.phone,
+            user.location
+        ))
 
     connection.commit()
     connection.close()
@@ -578,11 +597,32 @@ def search_products(name: str):
     }
 
 @app.put("/products/{product_id}")
-def update_product(product_id: int, product: ProductUpdate):
+def update_product(
+    product_id: int,
+    product: ProductUpdate,
+    farmer_id: int
+):
 
     connection = get_connection()
     cursor = connection.cursor()
 
+    # Check that this product belongs to this farmer
+    cursor.execute(
+        "SELECT farmer_id FROM products WHERE id = ?",
+        (product_id,)
+    )
+
+    existing_product = cursor.fetchone()
+
+    if existing_product is None:
+        connection.close()
+        return {"error": "Product not found"}
+
+    if existing_product[0] != farmer_id:
+        connection.close()
+        return {"error": "You can only edit your own products"}
+
+    # Update product
     cursor.execute("""
         UPDATE products
         SET name = ?,
@@ -597,10 +637,6 @@ def update_product(product_id: int, product: ProductUpdate):
         product.category,
         product_id
     ))
-
-    if cursor.rowcount == 0:
-        connection.close()
-        return {"error": "Product not found"}
 
     connection.commit()
     connection.close()
